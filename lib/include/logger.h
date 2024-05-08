@@ -1,6 +1,7 @@
 #ifndef LIB_LOGGER_H_
 #define LIB_LOGGER_H_
 #include <pthread.h>
+#include <errno.h>
 #include "allocator.h"
 #include "types.h"
 
@@ -13,7 +14,7 @@
 
 enum
 {
-    LOGGER_DEBUG = 0,
+    LOGGER_DEBUG = 1,
     LOGGER_INFO,
     LOGGER_WARNING,
     LOGGER_FATAL,
@@ -27,10 +28,11 @@ i32 logger_log( const char* file,
                 i32 line,
                 i32 thread,
                 u32 log_level,
+                i32 err,
                 const char* fmt,
                 ...);
 
-#define _logger_log(type, ...)      logger_log(__FILE__, __func__, __LINE__, pthread_self(), type, __VA_ARGS__)
+#define _logger_log(type, ...)      logger_log(__FILE__, __func__, __LINE__, pthread_self(), type,errno, __VA_ARGS__)
 #define LOG_DEBUG(...)              _logger_log(LOGGER_DEBUG, __VA_ARGS__)
 #define LOG_INFO(...)               _logger_log(LOGGER_INFO, __VA_ARGS__)
 #define LOG_WARNING(...)            _logger_log(LOGGER_WARNING, __VA_ARGS__)

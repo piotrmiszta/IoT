@@ -48,6 +48,7 @@ struct log_msg
     i32 line;
     i32 thread;
     u32 log_level;
+    i32 err;
     char msg[1000];
 };
 
@@ -68,6 +69,7 @@ i32 logger_log( const char* file,
                 i32 line,
                 i32 thread,
                 u32 log_level,
+                i32 err,
                 const char* fmt,
                 ...)
 {
@@ -77,6 +79,7 @@ i32 logger_log( const char* file,
     msg->line = line;
     msg->thread = thread;
     msg->log_level = log_level;
+    msg->err = err;
     va_list list;
     va_start(list, fmt);
     vsnprintf(msg->msg, sizeof(msg->msg), fmt, list);
@@ -154,10 +157,21 @@ static void log_print(struct log_msg* msg)
             fprintf(ofile, "[ UNKNW ]");
             break;
     }
-    fprintf(ofile, FILE_INFO_COLOR" %s:%u - %s "RESET   \
+    if(msg->err != 0 && (msg->log_level == LOGGER_ERROR || msg->log_level == LOGGER_FATAL))
+    {
+        fprintf(ofile, FILE_INFO_COLOR" %s:%u - %s "RESET   \
+                   TRHREAD_INFO_COLOR" THREAD: %u "     \
+                   SEP_COLOR" :: "RESET  " %s, ERRNO = %d, %s\n",       \
+                   msg->file, msg->line, msg->func, msg->thread, msg->msg, msg->err, strerror(msg->err));
+    }
+    else
+    {
+        fprintf(ofile, FILE_INFO_COLOR" %s:%u - %s "RESET   \
                    TRHREAD_INFO_COLOR" THREAD: %u "     \
                    SEP_COLOR" :: "RESET  " %s\n",       \
                    msg->file, msg->line, msg->func, msg->thread, msg->msg);
+    }
+
 }
 
 static void* logger_thread(void* arg)
