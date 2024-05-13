@@ -35,12 +35,10 @@ static inline void* allocator_alloc(size_t size)
 {
     return malloc(size);
 }
-
 static inline void allocator_free(void* ptr)
 {
     free(ptr);
 }
-
 static inline void* allocator_calloc(const size_t nmemb, const size_t size)
 {
     return calloc(nmemb, size);

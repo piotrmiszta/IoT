@@ -25,3 +25,12 @@ add_cmocka_test(lib_queue_test
 
 add_cmocka_test_environment(lib_queue_test)
 target_include_directories(lib_queue_test PUBLIC "${TEST_DIRS}")
+
+add_cmocka_test(lib_btree_test
+  SOURCES ${TEST_DIR}/lib_btree_test.c
+  COMPILE_OPTIONS ${DEFAULT_C_COMPILE_FLAGS}
+  LINK_OPTIONS ${DEFAULT_LINK_FLAGS}
+  LINK_LIBRARIES ${TEST_LIBS})
+
+add_cmocka_test_environment(lib_btree_test)
+target_include_directories(lib_btree_test PUBLIC "${TEST_DIRS}")
