@@ -1,0 +1,26 @@
+<device>
+    <interfaces>
+        <interface>
+            <name>USARTACM0</name>
+            <connected_device>STM32H755</connected_device>
+            <baudrate>115200</baudrate>
+            <crc>ENABLED</baudrate>
+            <parity>ODD</parity>
+        </interface>
+        <interface>
+            <name>ETH</name>
+            <connected_device>NONE</connected_device>
+        </interface>
+        <interface>
+            <name>WIFI</name>
+            <connected_device>NONE</connected_device>
+        </interface>
+    </interfaces>
+    <protocols>
+        <protocol>
+            <name>TCP/IP</name>
+            <ip>127.0.0.1</ip>
+            <port>8080</port>
+        </protocol>
+    </protocols>
+</device>
