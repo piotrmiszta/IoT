@@ -115,8 +115,8 @@ i32 logger_init(const char* filename, const char* desc)
 i32 logger_close(void)
 {
     run = 0;
+    sem_post(&sem_full);
     pthread_join(thread, NULL);
-    sem_post(&sem_empty);
     sem_destroy(&sem_empty);
     pthread_mutex_destroy(&mtx);
     fclose(ofile);
@@ -184,7 +184,8 @@ static void* logger_thread(void* arg)
         struct log_msg* msg = queue_pop(que);
         pthread_mutex_unlock(&mtx);
         sem_post(&sem_empty);
-        log_print(msg);
+        if(msg)
+            log_print(msg);
         allocator_free(msg);
     }
     pthread_mutex_lock(&mtx);

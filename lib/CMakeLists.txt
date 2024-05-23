@@ -15,5 +15,5 @@ add_library(lib_common_test STATIC    ${HEADER_LIST}
                              ${src})
 
 target_include_directories(lib_common_test PUBLIC ${INCLUDE_DIR}/)
-target_compile_options(lib_common_test PUBLIC -O -g -DLIB_TEST)
+target_compile_options(lib_common_test PUBLIC -O0 -g -DLIB_TEST)
 add_subdirectory(test)
