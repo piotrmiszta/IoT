@@ -68,10 +68,10 @@ void btree_get_test(void** state)
     }
 }
 
-static inline i32 search(void* a, void* b)
+static inline i32 search(const void* a, const void* b)
 {
-    int aa = *(int*)a;
-    int bb = *(int*)b;
+    const int aa = *(int*)a;
+    const int bb = *(int*)b;
     return aa==bb;
 }
 
@@ -79,7 +79,7 @@ void btree_search_test(void** state)
 {
     btree_t* tree= *state;
     int k = 4;
-    btree_node_t* t = btree_search(tree, &k, search);
+    const btree_node_t* t = btree_search(tree, &k, search);
    // assert_ptr_not_equal(t, NULL);
     int* ptr = btree_get_data(t);
     assert_int_equal(*(int*)ptr, 4);

@@ -17,7 +17,7 @@ typedef struct btree
 static inline btree_node_t* btree_node_alloc(void);
 static void __btree_for_each(btree_node_t* node, void* (*fun)(void* a));
 static void __dealloc_all_node(btree_node_t* node, void (*fun)(void*));
-static btree_node_t* __btree_search(btree_node_t* node, void* data, i32 (*search_fun)(void* a, void* b));
+static const btree_node_t* __btree_search(const btree_node_t* node, const void* data, i32 (*search_fun)(const void* a, const void* b));
 btree_t* btree_create(void (*dealloc)(void*))
 {
     btree_t* btree = allocator_alloc(sizeof(*btree));
@@ -43,7 +43,7 @@ void btree_destroy(btree_t* tree)
     allocator_free(tree);
 }
 
-void* btree_get_data(btree_node_t* node)
+void* btree_get_data(const btree_node_t* node)
 {
     return node->data;
 }
@@ -53,28 +53,28 @@ btree_node_t* btree_get_root(btree_t* tree)
     return tree->root;
 }
 
-i32 btree_add_left(btree_node_t* root, void* data)
+btree_node_t* btree_add_left(btree_node_t* root, void* data)
 {
     btree_node_t* node = btree_node_alloc();
     if(node == NULL)
     {
-        return -1;
+        return NULL;
     }
     root->left = node;
     node->data = data;
-    return 0;
+    return node;
 }
 
-i32 btree_add_right(btree_node_t* root, void* data)
+btree_node_t* btree_add_right(btree_node_t* root, void* data)
 {
     btree_node_t* node = btree_node_alloc();
     if(node == NULL)
     {
-        return -1;
+        return NULL;
     }
     root->right = node;
     node->data = data;
-    return 0;
+    return node;
 }
 
 i32 btree_add_root_data(btree_t* tree, void* data)
@@ -127,15 +127,15 @@ btree_node_t* btree_del_right(btree_node_t* root)
     return node;
 }
 
-btree_node_t* btree_search(btree_t* tree, void* data, i32 (*search_fun)(void* a, void* b))
+const btree_node_t* btree_search(const btree_t* tree, const void* data, i32 (*search_fun)(const void* a, const void* b))
 {
     return __btree_search(tree->root, data, search_fun);
 }
 
-btree_node_t* __btree_search(btree_node_t* node, void* data, i32 (*search_fun)(void* a, void* b))
+const btree_node_t* __btree_search(const btree_node_t* node, const void* data, i32 (*search_fun)(const void* a, const void* b))
 {
-    btree_node_t* left = node->left;
-    btree_node_t* right = node->right;
+    const btree_node_t* left = node->left;
+    const btree_node_t* right = node->right;
     if(node->data)
     {
         if(search_fun(node->data, data))
@@ -143,7 +143,7 @@ btree_node_t* __btree_search(btree_node_t* node, void* data, i32 (*search_fun)(v
             return node;
         }
     }
-    btree_node_t* to_ret = __btree_search(left, data, search_fun);
+    const btree_node_t* to_ret = __btree_search(left, data, search_fun);
     if(to_ret)
     {
         return to_ret;
@@ -202,4 +202,35 @@ static inline btree_node_t* btree_node_alloc(void)
     node->right = NULL;
     node->left = NULL;
     return node;
+}
+
+btree_node_t* btree_add_child(btree_node_t* parent, void* data)
+{
+    if(btree_have_child(parent))
+    {
+        return btree_add_sibling(parent->left, data);
+    }
+    else
+    {
+        return btree_add_left(parent, data);
+    }
+}
+
+btree_node_t* btree_add_sibling(btree_node_t* parent, void* data)
+{
+    btree_node_t* active = parent;
+    while(active->right)
+    {
+        active = active->right;
+    }
+    return btree_add_right(active, data);
+}
+
+i32 btree_have_child(btree_node_t* parent)
+{
+    if(parent->left)
+    {
+        return true;
+    }
+    return false;
 }

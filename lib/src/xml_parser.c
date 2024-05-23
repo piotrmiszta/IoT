@@ -2,6 +2,7 @@
 #include "xml_parser.h"
 #include "allocator.h"
 #include "btree.h"
+#include <string.h>
 
 typedef struct xml_string
 {
@@ -18,13 +19,11 @@ typedef struct xml_parser
 
 typedef struct xml_node
 {
-    char* start;
-    char* end;
+    const char* start;
+    const char* end;
     xml_string name;
     xml_string data;
 }xml_node;
-
-static inline char* xml_string_to_char(const xml_string string);
 
 static inline const char* skip_whitespace(const char* buffer);
 static inline const char* get_open_tag(const char* buffer);
@@ -32,20 +31,17 @@ static inline const char* get_close_tag(const char* buffer);
 static inline const char* get_begin_of_tag(const char* buffer);
 static inline const char* get_end_of_tag(const char* buffer);
 static inline const char* get_close_tag_by_name(const char* buff, const xml_string string);
-static inline bool xml_string_cmp(const xml_string a, const xml_string b);
+static inline xml_string get_tag_name(const char* buffer);
+static xml_string get_tag_data(const char* begin, const char* end);
 
 static xml_parser* xml_alloc(const char* filename);
 static i32 xml_parse(xml_parser* parser, const char* buff);
 static char* xml_read(const char* filename);
 static xml_node* xml_alloc_node(void);
+static inline btree_node_t* add_object(btree_node_t* parent, xml_node* n, bool* is_child);
+static i32 xml_get_all_childs(btree_node_t* parent, const char* buff, const char* end_buff);
 
-void xml_destroy(xml_parser* parser)
-{
-    allocator_free(parser->file);
-    btree_destroy(parser->tree);
-    allocator_free(parser->file);
-}
-
+/* global functions */
 xml_parser* xml_create(const char* filename)
 {
     xml_parser* parser = xml_alloc(filename);
@@ -58,129 +54,34 @@ xml_parser* xml_create(const char* filename)
     char* file = xml_read(filename);
     parser->file = file;
 
-    xml_parse(parser, NULL);
+    xml_parse(parser, file);
     return parser;
 }
 
-static xml_parser* xml_alloc(const char* filename)
+void xml_destroy(xml_parser* parser)
 {
-    assert(filename);
-    xml_parser* parser = allocator_alloc(sizeof(xml_parser));
-    if(!parser)
-    {
-        return NULL;
-    }
-    u32 filenamesz = strlen(filename) + 1;
-    parser->filename = allocator_alloc(filenamesz);
-    if(!parser->filename)
-    {
-        allocator_free(parser);
-        return NULL;
-    }
-    memcpy(parser->filename, filename, filenamesz);
-    parser->tree = btree_create(NULL); //change this function to deall
-    if(!parser->tree)
-    {
-        allocator_free(parser->filename);
-        allocator_free(parser);
-        return NULL;
-    }
-    return parser;
+    allocator_free(parser->file);
+    btree_destroy(parser->tree);
+    allocator_free(parser->filename);
+    allocator_free(parser);
 }
 
-static char* xml_read(const char* filename)
+btree_node_t* xml_get_root(const xml_parser* parser)
 {
-    FILE* file = fopen(filename, "r");
-    if(!file)
-    {
-        print_err("Can't open file %s\n", filename);
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    i32 len = ftell(file);
-    len++;
-    char* temp = allocator_alloc(len * sizeof(char));
-    if(!temp)
-    {
-        print_err("Cannot malloc buffer for file\n");
-        return NULL;
-    }
-    fseek(file, SEEK_SET, 0);
-    i32 t = fread(temp, sizeof(char), len, file);
-    (void)t;
-    fclose(file);
-    temp[len - 1] = '\0';
-    return temp;
+    return btree_get_root(parser->tree);
 }
 
-static xml_node* xml_alloc_node(void)
+xml_string xml_node_data(const xml_node* node)
 {
-    xml_node* node = allocator_alloc(sizeof(xml_node));
-    if(!node)
-    {
-        print_err("cannot alloc memory for node\n");
-        return NULL;
-    }
-    return node;
+    return node->data;
 }
 
-/*
-
-    <device>
-        <interfaces>
-            <test>Testing data</test>
-            <test2></test2>
-        </interfaces>
-        <protocols>
-        </protocols>
-    </device>
-
-
-    We just want to parse like this,
-    find first open tag "device" and closed tag "/device",
-    and add this to tree as
-*/
-//TODO: implement this function
-
-static i32 xml_parse(xml_parser* parser, const char* buff)
+xml_string xml_node_name(const xml_node* node)
 {
-    (void)parser;
-    (void)buff;
-    void* ptr = xml_alloc_node();
-    allocator_free(ptr);
-    return 0;
-    /*
-    const char* begin = buff;
-    const char* open_tag = buff;
-    const char* end_tag = buff;
-    btree_node_t* root = btree_get_root(parser->tree);
-    int k = 0;  //0 for left, 1 for right
-    while(1)
-    {
-        // get open tag
-        open_tag = get_open_tag(open_tag);
-        xml_string name = get_tag_name(open_tag);
-        end_tag = get_close_tag_by_name(buff, name);
-        xml_node* node = xml_alloc_node();
-        node->data = (xml_string){NULL, NULL};
-        node->start = open_tag;
-        node->end = end_tag;
-        node->name = (xml_string){name.begin, name.end};
-        if(k == 0)  //this is new child
-        {
-            btree_add_left(root, node);
-            root = btree_get_left(root);
-        }
-        else        //this is new subling
-        {
-            btree_add_right(root, node);
-            root = btree_get_right(root);
-        }
-    }
-    return 0;*/
+    return node->name;
 }
 
-static inline char* xml_string_to_char(const xml_string string)
+char* xml_string_to_char(const xml_string string)
 {
     size_t len = (string.end - string.begin) + 1;
     char* buff = allocator_calloc(len, sizeof(char));
@@ -192,6 +93,29 @@ static inline char* xml_string_to_char(const xml_string string)
     return buff;
 }
 
+bool xml_string_cmp(const xml_string a, const xml_string b)
+{
+    u32 lena = a.end - a.begin;
+    u32 lenb = b.end - b.begin;
+    if(lena != lenb)
+    {
+        return false;
+    }
+    const char* ptr1 = a.begin;
+    const char* ptr2 = b.begin;
+
+    for(u32 i = 0; i < lena; i++)
+    {
+        if(ptr1[i] != ptr2[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* static functions */
 static inline const char* skip_whitespace(const char* buffer)
 {
     do
@@ -205,6 +129,7 @@ static inline const char* skip_whitespace(const char* buffer)
         case '\r':
         case ' ':
             buffer++;
+            break;
         default:
             return buffer;
         }
@@ -221,6 +146,11 @@ static inline const char* get_open_tag(const char* buffer)
             if(*(buffer + 1) != '/')
             {
                 return buffer;
+            }
+            else
+            {
+                buffer++;
+                buffer++;
             }
         }
         else
@@ -287,39 +217,6 @@ static inline const char* get_end_of_tag(const char* buffer)
     }while(1);
 }
 
-static inline xml_string get_tag_name(const char* buffer)
-{
-    const char* begin = get_begin_of_tag(buffer);
-    const char* end = get_end_of_tag(begin);
-    if(*(begin + 1) == '/')
-    {
-        begin++;
-    }
-    return (xml_string){begin + 1, end};
-}
-
-static inline bool xml_string_cmp(const xml_string a, const xml_string b)
-{
-    u32 lena = a.end - a.begin;
-    u32 lenb = b.end - b.begin;
-    if(lena != lenb)
-    {
-        return false;
-    }
-    const char* ptr1 = a.begin;
-    const char* ptr2 = b.begin;
-
-    for(u32 i = 0; i < lena; i++)
-    {
-        if(ptr1[i] != ptr2[i])
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static inline const char* get_close_tag_by_name(const char* buff, const xml_string string)
 {
     do
@@ -336,4 +233,144 @@ static inline const char* get_close_tag_by_name(const char* buff, const xml_stri
         }
     } while (1);
 
+}
+
+static inline xml_string get_tag_name(const char* buffer)
+{
+    const char* begin = get_begin_of_tag(buffer);
+    const char* end = get_end_of_tag(begin);
+    if(*(begin + 1) == '/')
+    {
+        begin++;
+    }
+    return (xml_string){begin + 1, end};
+}
+
+static xml_string get_tag_data(const char* begin, const char* end)
+{
+    const char* bend =get_end_of_tag(begin) + 1;
+    const char* next = get_open_tag(bend);
+    bend = skip_whitespace(bend);
+    if(next > end || next == NULL)
+    {
+        return (xml_string){bend, end};
+    }
+    else
+    {
+        return (xml_string){NULL, NULL};
+    }
+}
+
+static xml_parser* xml_alloc(const char* filename)
+{
+    assert(filename);
+    xml_parser* parser = allocator_alloc(sizeof(xml_parser));
+    if(!parser)
+    {
+        return NULL;
+    }
+    u32 filenamesz = strlen(filename) + 1;
+    parser->filename = allocator_alloc(filenamesz);
+    if(!parser->filename)
+    {
+        allocator_free(parser);
+        return NULL;
+    }
+    memcpy(parser->filename, filename, filenamesz);
+    parser->tree = btree_create(allocator_free); //change this function to deall
+    if(!parser->tree)
+    {
+        allocator_free(parser->filename);
+        allocator_free(parser);
+        return NULL;
+    }
+    return parser;
+}
+
+static i32 xml_parse(xml_parser* parser, const char* buff)
+{
+    return xml_get_all_childs(btree_get_root(parser->tree), buff, &buff[strlen(buff)]);;
+}
+
+static char* xml_read(const char* filename)
+{
+    FILE* file = fopen(filename, "r");
+    if(!file)
+    {
+        print_err("Can't open file %s\n", filename);
+        return NULL;
+    }
+    fseek(file, 0, SEEK_END);
+    i32 len = ftell(file);
+    len++;
+    char* temp = allocator_alloc(len * sizeof(char));
+    if(!temp)
+    {
+        print_err("Cannot malloc buffer for file\n");
+        return NULL;
+    }
+    fseek(file, SEEK_SET, 0);
+    i32 t = fread(temp, sizeof(char), len, file);
+    (void)t;
+    fclose(file);
+    temp[len - 1] = '\0';
+    return temp;
+}
+
+static xml_node* xml_alloc_node(void)
+{
+    xml_node* node = allocator_alloc(sizeof(xml_node));
+    if(!node)
+    {
+        print_err("cannot alloc memory for node\n");
+        return NULL;
+    }
+    return node;
+}
+
+static inline btree_node_t* add_object(btree_node_t* parent, xml_node* n, bool* is_child)
+{
+    btree_node_t* ret = NULL;
+    if(parent)
+    {
+        if(*is_child)
+        {
+            ret = btree_add_sibling(parent, n);
+        }
+        else
+        {
+            ret = btree_add_child(parent, n);
+            *is_child = true;
+
+        }
+    }
+    return ret;
+}
+
+static i32 xml_get_all_childs(btree_node_t* parent, const char* buff, const char* end_buff)
+{
+    bool is_child = false;
+    btree_node_t* active = parent;
+    const char* open = buff;
+    const char* close = buff;
+    while(1)
+    {
+        // get child, call this function for child,
+        // get another child -> sibling for previous child and repeat till end
+        open = get_open_tag(open);
+        if(!open || open >= end_buff)
+        {
+            return 0;
+        }
+        xml_string name = get_tag_name(open);
+        close = get_close_tag_by_name(open, name);
+        xml_node* node = xml_alloc_node();
+        node->data = get_tag_data(open, close);
+        node->name = (xml_string){name.begin,  name.end};
+        node->start = open;
+        node->end = close;
+        active = add_object(active, node, &is_child);
+        xml_get_all_childs(active, get_end_of_tag(open), close);
+        open = close;
+    }
 }

@@ -4,7 +4,7 @@
             <name>USARTACM0</name>
             <connected_device>STM32H755</connected_device>
             <baudrate>115200</baudrate>
-            <crc>ENABLED</baudrate>
+            <crc>ENABLED</crc>
             <parity>ODD</parity>
         </interface>
         <interface>
@@ -18,7 +18,7 @@
     </interfaces>
     <protocols>
         <protocol>
-            <name>TCP/IP</name>
+            <name>   TCP/IP</name>
             <ip>127.0.0.1</ip>
             <port>8080</port>
         </protocol>
