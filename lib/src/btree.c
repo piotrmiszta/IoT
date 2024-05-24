@@ -15,9 +15,13 @@ typedef struct btree
 }btree_t;
 
 static inline btree_node_t* btree_node_alloc(void);
+
 static void __btree_for_each(btree_node_t* node, void* (*fun)(void* a));
+
 static void __dealloc_all_node(btree_node_t* node, void (*fun)(void*));
+
 static const btree_node_t* __btree_search(const btree_node_t* node, const void* data, i32 (*search_fun)(const void* a, const void* b));
+
 btree_t* btree_create(void (*dealloc)(void*))
 {
     btree_t* btree = allocator_alloc(sizeof(*btree));

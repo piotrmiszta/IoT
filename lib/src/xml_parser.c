@@ -52,8 +52,11 @@ xml_parser* xml_create(const char* filename)
     }
     /* start  processing file*/
     char* file = xml_read(filename);
+    if(!file)
+    {
+        print_err("Cannot read xml file errno: %s", strerror(errno));
+    }
     parser->file = file;
-
     xml_parse(parser, file);
     return parser;
 }

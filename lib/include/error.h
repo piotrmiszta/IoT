@@ -6,6 +6,7 @@
 #define ERROR_H
 #include <stdio.h>
 #include <assert.h>
+#include <errno.h>
 /**
  * @brief macro assert_debug() is used for debugging code
  *        check things that programmer should be aware of
