@@ -9,12 +9,12 @@
  *          This parser not need to be very fast and efficient, since they will be used only in boot, or close
  *          stage of program executon.
  *
- *          TODO: just add parsing in diffrent way, from btree to xml file
+ *          TODO: just add parsing in diffrent way, from binary_tree to xml file
 */
 
 #ifndef LIB_XML_PARSER_H_
 #define LIB_XML_PARSER_H_
-#include "btree.h"
+#include "binary_tree.h"
 
 /**
  * @brief contains all information needed by parser
@@ -45,7 +45,7 @@ void xml_destroy(xml_parser* parser);
 /**
  * @brief return root - first element of parsed tree
 */
-btree_node_t* xml_get_root(const xml_parser* parser);
+binary_tree_node_t* xml_get_root(const xml_parser* parser);
 
 /**
  * @brief return data of node

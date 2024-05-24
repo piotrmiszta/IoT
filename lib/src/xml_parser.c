@@ -1,7 +1,7 @@
 #include <string.h>
 #include "xml_parser.h"
 #include "allocator.h"
-#include "btree.h"
+#include "binary_tree.h"
 #include <string.h>
 
 typedef struct xml_string
@@ -13,7 +13,7 @@ typedef struct xml_string
 typedef struct xml_parser
 {
     char* filename;
-    btree_t* tree;
+    binary_tree_t* tree;
     char* file;
 }xml_parser;
 
@@ -38,8 +38,8 @@ static xml_parser* xml_alloc(const char* filename);
 static i32 xml_parse(xml_parser* parser, const char* buff);
 static char* xml_read(const char* filename);
 static xml_node* xml_alloc_node(void);
-static inline btree_node_t* add_object(btree_node_t* parent, xml_node* n, bool* is_child);
-static i32 xml_get_all_childs(btree_node_t* parent, const char* buff, const char* end_buff);
+static inline binary_tree_node_t* add_object(binary_tree_node_t* parent, xml_node* n, bool* is_child);
+static i32 xml_get_all_childs(binary_tree_node_t* parent, const char* buff, const char* end_buff);
 
 /* global functions */
 xml_parser* xml_create(const char* filename)
@@ -64,14 +64,14 @@ xml_parser* xml_create(const char* filename)
 void xml_destroy(xml_parser* parser)
 {
     allocator_free(parser->file);
-    btree_destroy(parser->tree);
+    binary_tree_destroy(parser->tree);
     allocator_free(parser->filename);
     allocator_free(parser);
 }
 
-btree_node_t* xml_get_root(const xml_parser* parser)
+binary_tree_node_t* xml_get_root(const xml_parser* parser)
 {
-    return btree_get_root(parser->tree);
+    return binary_tree_get_root(parser->tree);
 }
 
 xml_string xml_node_data(const xml_node* node)
@@ -280,7 +280,7 @@ static xml_parser* xml_alloc(const char* filename)
         return NULL;
     }
     memcpy(parser->filename, filename, filenamesz);
-    parser->tree = btree_create(allocator_free); //change this function to deall
+    parser->tree = binary_tree_create(allocator_free); //change this function to deall
     if(!parser->tree)
     {
         allocator_free(parser->filename);
@@ -292,7 +292,7 @@ static xml_parser* xml_alloc(const char* filename)
 
 static i32 xml_parse(xml_parser* parser, const char* buff)
 {
-    return xml_get_all_childs(btree_get_root(parser->tree), buff, &buff[strlen(buff)]);;
+    return xml_get_all_childs(binary_tree_get_root(parser->tree), buff, &buff[strlen(buff)]);;
 }
 
 static char* xml_read(const char* filename)
@@ -331,18 +331,18 @@ static xml_node* xml_alloc_node(void)
     return node;
 }
 
-static inline btree_node_t* add_object(btree_node_t* parent, xml_node* n, bool* is_child)
+static inline binary_tree_node_t* add_object(binary_tree_node_t* parent, xml_node* n, bool* is_child)
 {
-    btree_node_t* ret = NULL;
+    binary_tree_node_t* ret = NULL;
     if(parent)
     {
         if(*is_child)
         {
-            ret = btree_add_sibling(parent, n);
+            ret = binary_tree_add_sibling(parent, n);
         }
         else
         {
-            ret = btree_add_child(parent, n);
+            ret = binary_tree_add_child(parent, n);
             *is_child = true;
 
         }
@@ -350,10 +350,10 @@ static inline btree_node_t* add_object(btree_node_t* parent, xml_node* n, bool* 
     return ret;
 }
 
-static i32 xml_get_all_childs(btree_node_t* parent, const char* buff, const char* end_buff)
+static i32 xml_get_all_childs(binary_tree_node_t* parent, const char* buff, const char* end_buff)
 {
     bool is_child = false;
-    btree_node_t* active = parent;
+    binary_tree_node_t* active = parent;
     const char* open = buff;
     const char* close = buff;
     while(1)
